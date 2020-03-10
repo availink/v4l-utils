@@ -104,6 +104,7 @@ void sig_handler(int signo)
   if (signo == SIGINT) {
     printf("Caught SIGINT\n");
     unset_blindscan_mode();
+    exit(0);
   }
 }
 
