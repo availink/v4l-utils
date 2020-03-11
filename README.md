@@ -416,5 +416,6 @@ when adding a DVB-S network.
 ### Where?
 You'll find the source in utils/dvb/avl-scan.c
 ### Fine Print
-This utility relies on magic implemented in our Availink demodulator firmwares and Linux drivers.
+This utility relies on magic in our Availink demodulator firmwares and Linux drivers.
 At this time, only the avl62x1 driver implements this magic, but support for the avl68x2 is in the works.
+These drivers can be found [here](https://github.com/availink/dvb-frontends-availink).
