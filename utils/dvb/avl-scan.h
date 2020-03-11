@@ -59,6 +59,43 @@
 #define MILLION			1000000u
 #define THOUSAND		1000u
 
+#define C_F_BLACK		"\033[30m"
+#define C_F_RED			"\033[31m"
+#define C_F_GREEN		"\033[32m"
+#define C_F_ORANGE	"\033[33m"
+#define C_F_BLUE		"\033[34m"
+#define C_F_MAGENTA	"\033[35m"
+#define C_F_CYAN		"\033[36m"
+#define C_F_LTGREY	"\033[37m"
+#define C_F_RESET		"\033[39m"
+
+#define C_B_BLACK		"\033[40m"
+#define C_B_RED			"\033[41m"
+#define C_B_GREEN		"\033[42m"
+#define C_B_ORANGE	"\033[43m"
+#define C_B_BLUE		"\033[44m"
+#define C_B_MAGENTA	"\033[45m"
+#define C_B_CYAN		"\033[46m"
+#define C_B_LTGREY	"\033[47m"
+#define C_B_RESET		"\033[49m"
+
+#define C_B_DK_GRAY		"\033[100m"
+#define C_B_LT_RED		"\033[101m"
+#define C_B_LT_GREEN	"\033[102m"
+#define C_B_YELLOW		"\033[103m"
+#define C_B_LT_BLUE		"\033[104m"
+#define C_B_LT_PURPLE	"\033[105m"
+#define C_B_TEAL			"\033[106m"
+#define C_B_WHITE			"\033[107m"
+
+#define C_NOTE				C_F_GREEN
+#define C_INFO				C_F_BLACK C_B_CYAN
+#define C_GOOD				C_F_GREEN
+#define C_OKAY				C_F_ORANGE
+#define C_BAD					C_F_RED
+#define C_RESET				C_F_RESET C_B_RESET
+
+
 #define xioctl(fh, request, arg...) ({                      \
 	int __rc;                                                 \
 	struct timespec __start, __end;                           \
