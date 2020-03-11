@@ -1,12 +1,12 @@
 ## avl-scan
 ### What?
 This new utility implements Availink's fast blind scan algorithm in userspace.
-"Blind" means that, given a frequency range, it will search the entire spectrum.
+*Blind* means that, given a frequency range, it will search the entire spectrum.
 Just tell avl-scan what type of LNB you have and it does the rest, outputting
-a list of "channels" in the DVBv5 file format, a "channel" being a distinct
-transport stream (including those transported inside T2MI).
+a list of transport streams in the DVBv5 file format (including those transported
+as multipel ISI's and/or inside T2MI).
 This channel file can be fed into e.g. dvbv5-scan for program scanning.
-It's "fast" because it searches intelligently - it doesn't just try every
+It's *fast* because it searches intelligently - it doesn't just try every
 frequency/symbol rate combination, or a rasterized reduction of that. A full
 scan of the L-band spectrum takes about a minute, depending on how many
 channels there are.
@@ -280,7 +280,7 @@ Step tuner by 62.734 MHz
 Ftune 2100.000 MHz
 No streams
 
-Found a total of 4 channels
+Found a total of 2 channels
 Exiting...
 
 $ cat mychans.conf
