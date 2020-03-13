@@ -309,7 +309,7 @@ int scan(int frontend_fd,
       printf("ISI %d\n", stream_id & 0xFF);
       if ((stream_id >> AVL62X1_BS_IS_T2MI_SHIFT) & 1)
       {
-        printf("T2MI PID %d\n", (stream_id >> AVL62X1_BS_T2MI_PID_SHIFT) & 0x1FFF);
+        printf("T2MI PID 0x%.4x\n", (stream_id >> AVL62X1_BS_T2MI_PID_SHIFT) & 0x1FFF);
         printf("T2MI PLP ID %d\n", (stream_id >> AVL62X1_BS_T2MI_PLP_ID_SHIFT) & 0xFF);
       }
       printf("STD %s\n", (p[3].u.data == SYS_DVBS2) ? "S2" : "S");
@@ -453,7 +453,7 @@ void dedupe_channels(struct dvb_file *chans) {
       if ((pol1 == pol2) &&             //same polaritzation (or none)
           (abs(f1 - f2) <= 5000) &&     //freqs within 0.5MHz
           (abs(sr1 - sr2) <= 500000) && //symrates within 0.5Msps
-          (isi1 == isi2))
+          (isi1 == isi2)) //this contains ISI, PLP ID, T2MI PID
       {
         //duplicate entry - remove it
         printf(_("Removing channel duplicate: %.6f MHz, %.3f Msps, Pol %d, ISI %d\n"),
