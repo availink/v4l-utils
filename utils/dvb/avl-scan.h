@@ -45,7 +45,7 @@
 #define DEFAULT_OUTPUT  "channels.conf"
 
 
-#define AVL62X1_BS_CTRL_PROP              isdbt_sb_segment_idx
+#define AVL62X1_BS_CTRL_CMD               DTV_ISDBT_SB_SEGMENT_IDX
 //isdbt_sb_segment_idx fields
 #define AVL62X1_BS_CTRL_VALID_STREAM_MASK (0x80000000)
 #define AVL62X1_BS_CTRL_NEW_TUNE_MASK     (0x40000000)
