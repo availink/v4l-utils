@@ -189,7 +189,7 @@ int scan(int frontend_fd,
 #endif
 
   uint32_t cur_rf_hz = min_rf_hz;
-  uint32_t bs_ctrl = AVL62X1_BS_NEW_TUNE; //new rf freq
+  uint32_t bs_ctrl = AVL62X1_BS_CTRL_NEW_TUNE_MASK; //new rf freq
   do
   {
     struct dtv_property p_carr_search[] = {
@@ -255,11 +255,8 @@ int scan(int frontend_fd,
     unsigned int stream_id = p[p_status.num - 1].u.data;
 
     printf("\n\n%sFtune %.3f MHz%s\n", C_INFO, cur_rf_hz/1e6f, C_RESET);
-    if ((p[p_status.num - 1].u.data >> AVL62X1_BS_STREAM_INVALID_SHIFT) & 1)
-    {
-      printf(C_OKAY "No streams\n" C_RESET);
-    }
-    else
+    
+    if (p[0].u.data & AVL62X1_BS_CTRL_VALID_STREAM_MASK)
     {
       if (cur_entry == NULL)
       {
@@ -314,25 +311,32 @@ int scan(int frontend_fd,
       }
       printf("STD %s\n", (p[3].u.data == SYS_DVBS2) ? "S2" : "S");
     }
+    else
+    {
+      printf(C_OKAY "No streams\n" C_RESET);
+    }
     // for(int i=0; i<p_status.num; i++) {
     //   printf("%d => %d\n",p[i].cmd,p[i].u.data);
     // }
 
     printf(C_RESET);
 
-    if (p_status.props[0].u.data == AVL62X1_BS_MORE_RESULTS)
+    if (p_status.props[0].u.data & AVL62X1_BS_CTRL_MORE_RESULTS_MASK)
     {
       //more streams in this carrier
-      bs_ctrl = AVL62X1_BS_MORE_RESULTS;
+      bs_ctrl = 0;
     }
     else
     {
       if (cur_rf_hz >= max_rf_hz)
         break;
-      cur_rf_hz += p_status.props[0].u.data; //move RF freq
+      cur_rf_hz +=
+          (p_status.props[0].u.data & AVL62X1_BS_CTRL_TUNER_STEP_MASK) *
+          1000; //move RF freq
       cur_rf_hz = MIN(cur_rf_hz, max_rf_hz);
-      bs_ctrl = AVL62X1_BS_NEW_TUNE;
-      printf("Step tuner by %.3f MHz\n", p_status.props[0].u.data/1e6f);
+      bs_ctrl = AVL62X1_BS_CTRL_NEW_TUNE_MASK;
+      printf("Step tuner by %.3f MHz\n",
+             (p_status.props[0].u.data & AVL62X1_BS_CTRL_TUNER_STEP_MASK) / 1e3f);
     }
 
   } while (cur_rf_hz <= max_rf_hz);
@@ -603,7 +607,7 @@ int main(int argc, char *argv[])
   } else if(!strcmp(info.name, "Availink avl68x2")) {
     sprintf(bs_mode_path, "/sys/module/avl68x2/parameters/bs_mode");
   } else {
-    printf(C_BAD "Frontend '%s' not supported.  Only 'Availink avl62x1' and 'Availink avl68x2' supported." C_RESET);
+    printf(C_BAD "Frontend '%s' not supported.  Only 'Availink avl62x1' and 'Availink avl68x2' supported." C_RESET,info.name);
     exit(1);
   }
 

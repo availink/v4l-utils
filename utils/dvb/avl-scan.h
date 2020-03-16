@@ -44,15 +44,18 @@
 #define PROGRAM_NAME	"avl-scan"
 #define DEFAULT_OUTPUT  "channels.conf"
 
-#define AVL62X1_BS_CTRL_CMD			DTV_ISDBT_SB_SEGMENT_IDX
 
-#define AVL62X1_BS_STREAM_INVALID_SHIFT	30
-#define AVL62X1_BS_IS_T2MI_SHIFT	29
-#define AVL62X1_BS_T2MI_PID_SHIFT	16
-#define AVL62X1_BS_T2MI_PLP_ID_SHIFT	8
+#define AVL62X1_BS_CTRL_PROP              isdbt_sb_segment_idx
+//isdbt_sb_segment_idx fields
+#define AVL62X1_BS_CTRL_VALID_STREAM_MASK (0x80000000)
+#define AVL62X1_BS_CTRL_NEW_TUNE_MASK     (0x40000000)
+#define AVL62X1_BS_CTRL_MORE_RESULTS_MASK (0x20000000)
+#define AVL62X1_BS_CTRL_TUNER_STEP_MASK   (0x0001FFFF) //128k kHz
 
-#define AVL62X1_BS_NEW_TUNE		(uint32_t)-1
-#define AVL62X1_BS_MORE_RESULTS		(uint32_t)-2
+//stream_id fields
+#define AVL62X1_BS_IS_T2MI_SHIFT      29
+#define AVL62X1_BS_T2MI_PID_SHIFT     16
+#define AVL62X1_BS_T2MI_PLP_ID_SHIFT  8
 
 #define MAX_TIME		10	/* 1.0 seconds */
 
