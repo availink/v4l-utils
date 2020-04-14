@@ -284,8 +284,9 @@ int scan(int frontend_fd,
 
       //convert frequency to khz and add LO
       printf(C_NOTE);
-      printf("IF %.6f MHz\n", p[1].u.data/1e6f);
-      p[1].u.data /= 1000;
+      //printf("IF %.6f MHz\n", p[1].u.data/1e6f);
+      //p[1].u.data /= 1000;
+      printf("IF %.6f MHz\n", p[1].u.data/1e3f);
       if(inv_lo) {
         p[1].u.data = lo_khz - p[1].u.data;
       } else {
