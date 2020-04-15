@@ -154,12 +154,13 @@ void print_band(
 }
 
 int scan(int frontend_fd,
-         uint32_t min_rf_hz,
-         uint32_t max_rf_hz,
+         uint32_t min_rf_khz,
+         uint32_t max_rf_khz,
          uint32_t lo_khz,
          char inv_lo,
          struct dvb_file *chans_file,
-         struct dvb_v5_fe_parms *parms)
+         struct dvb_v5_fe_parms *parms,
+         uint32_t symbolrate_max_hz)
 {
   static struct dvb_entry *cur_entry = NULL;
 
@@ -188,14 +189,14 @@ int scan(int frontend_fd,
   }
 #endif
 
-  uint32_t cur_rf_hz = min_rf_hz;
+  uint32_t cur_rf_khz = min_rf_khz;
   uint32_t bs_ctrl = AVL62X1_BS_CTRL_NEW_TUNE_MASK; //new rf freq
   do
   {
     struct dtv_property p_carr_search[] = {
-        {.cmd = DTV_FREQUENCY, .u.data = cur_rf_hz / 1000},
+        {.cmd = DTV_FREQUENCY, .u.data = cur_rf_khz},
         {.cmd = AVL62X1_BS_CTRL_CMD, .u.data = bs_ctrl},
-        {.cmd = DTV_SYMBOL_RATE, .u.data = 55000000}, //set to any valid rate
+        {.cmd = DTV_SYMBOL_RATE, .u.data = symbolrate_max_hz},
         {.cmd = DTV_TUNE},
     };
     struct dtv_properties cmdseq_carr_search = {
@@ -236,8 +237,8 @@ int scan(int frontend_fd,
 
     struct dtv_property p[] = {
         {.cmd = AVL62X1_BS_CTRL_CMD},
-        {.cmd = DTV_FREQUENCY},
-        {.cmd = DTV_SYMBOL_RATE},
+        {.cmd = DTV_FREQUENCY}, //in kHz
+        {.cmd = DTV_SYMBOL_RATE}, //in Hz
         {.cmd = DTV_DELIVERY_SYSTEM},
         {.cmd = DTV_PILOT},
         {.cmd = DTV_STREAM_ID}};
@@ -254,7 +255,7 @@ int scan(int frontend_fd,
 
     unsigned int stream_id = p[p_status.num - 1].u.data;
 
-    printf("\n\n%sFtune %.3f MHz%s\n", C_INFO, cur_rf_hz/1e6f, C_RESET);
+    printf("\n\n%sFtune %.3f MHz%s\n", C_INFO, cur_rf_khz/1e3f, C_RESET);
     
     if (p[0].u.data & AVL62X1_BS_CTRL_VALID_STREAM_MASK)
     {
@@ -282,7 +283,7 @@ int scan(int frontend_fd,
       }
       cur_entry->sat_number = -1;
 
-      //convert frequency to khz and add LO
+      //frequency in khz; add LO
       printf(C_NOTE);
       //printf("IF %.6f MHz\n", p[1].u.data/1e6f);
       //p[1].u.data /= 1000;
@@ -329,18 +330,17 @@ int scan(int frontend_fd,
     }
     else
     {
-      if (cur_rf_hz >= max_rf_hz)
+      if (cur_rf_khz >= max_rf_khz)
         break;
-      cur_rf_hz +=
-          (p_status.props[0].u.data & AVL62X1_BS_CTRL_TUNER_STEP_MASK) *
-          1000; //move RF freq
-      cur_rf_hz = MIN(cur_rf_hz, max_rf_hz);
+      cur_rf_khz +=
+          (p_status.props[0].u.data & AVL62X1_BS_CTRL_TUNER_STEP_MASK); //move RF freq
+      cur_rf_khz = MIN(cur_rf_khz, max_rf_khz);
       bs_ctrl = AVL62X1_BS_CTRL_NEW_TUNE_MASK;
       printf("Step tuner by %.3f MHz\n",
              (p_status.props[0].u.data & AVL62X1_BS_CTRL_TUNER_STEP_MASK) / 1e3f);
     }
 
-  } while (cur_rf_hz <= max_rf_hz);
+  } while (cur_rf_khz <= max_rf_khz);
 
   return 0;
 }
@@ -585,6 +585,23 @@ int main(int argc, char *argv[])
   err = dvb_fe_set_default_country(parms, args.cc);
   if (err < 0)
     fprintf(stderr, _(C_BAD "Failed to set the country code:%s\n" C_RESET), args.cc);
+  
+  err = dvb_set_compat_delivery_system(parms, SYS_DVBS2);
+  if(err < 0)
+    fprintf(stderr, _(C_BAD "Failed to set the delivery system:%s\n" C_RESET), args.cc);
+
+
+  // struct dtv_property get_delsys_prop[] = {
+  //       {.cmd = DTV_DELIVERY_SYSTEM}};
+  // struct dtv_properties get_delsys_props = {
+  //     .num = ARRAY_SIZE(get_delsys_prop),
+  //     .props = get_delsys_prop};
+  // if ((xioctl(fe_handle->fd, FE_GET_PROPERTY, &get_delsys_props)) == -1)
+  // {
+  //   perror("FE_GET_PROPERTY DTV_DELIVERY_SYSTEM failed");
+  //   return -1;
+  // }
+  // printf("Delivery System set to %d\n",get_delsys_prop[0].u.data);
 
   struct dvb_frontend_info info;
   if ((xioctl(fe_handle->fd, FE_GET_INFO, &info)) == -1)
@@ -593,13 +610,13 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  
-  printf("\nFrontend: %s\n\tFmin  %d MHz\n\tFmax  %d MHz\n\tSRmin %d Ksps\n\tSRmax %d Ksps\n",
+  //frontend frequencies are in kHz
+  printf("\nFrontend: %s\n\tFmin  %d MHz\n\tFmax  %d MHz\n\tSRmin %d Msps\n\tSRmax %d Msps\n",
          info.name,
          info.frequency_min / THOUSAND,
          info.frequency_max / THOUSAND,
-         info.symbol_rate_min / THOUSAND,
-         info.symbol_rate_max / THOUSAND);
+         info.symbol_rate_min / MILLION,
+         info.symbol_rate_max / MILLION);
 
 
   //put kernel module into blindscan mode
@@ -623,35 +640,36 @@ int main(int argc, char *argv[])
     last_band = args.freq_band;
   }
 
+  //LNB frequencies are in MHz
   for (int i = first_band; i <= last_band; i++) {
 
     char inv_lo = (lnb_p->freqrange[i].int_freq > lnb_p->freqrange[i].low);
 
-    unsigned int start_freq_hz, stop_freq_hz;
+    unsigned int start_freq_khz, stop_freq_khz;
     if(inv_lo) {
-      start_freq_hz = abs(lnb_p->freqrange[i].high -
+      start_freq_khz = abs(lnb_p->freqrange[i].high -
                     lnb_p->freqrange[i].int_freq) *
-                    MILLION;
-      stop_freq_hz = abs(lnb_p->freqrange[i].low -
+                    THOUSAND;
+      stop_freq_khz = abs(lnb_p->freqrange[i].low -
                     lnb_p->freqrange[i].int_freq) *
-                  MILLION;
+                  THOUSAND;
     } else {
-      start_freq_hz = abs(lnb_p->freqrange[i].low -
+      start_freq_khz = abs(lnb_p->freqrange[i].low -
                     lnb_p->freqrange[i].int_freq) *
-                    MILLION;
-      stop_freq_hz = abs(lnb_p->freqrange[i].high -
+                    THOUSAND;
+      stop_freq_khz = abs(lnb_p->freqrange[i].high -
                     lnb_p->freqrange[i].int_freq) *
-                  MILLION;
+                  THOUSAND;
     }
     
-    start_freq_hz = MAX(info.frequency_min * THOUSAND, start_freq_hz);
-    stop_freq_hz = MIN(info.frequency_max * THOUSAND, stop_freq_hz);
+    start_freq_khz = MAX(info.frequency_min, start_freq_khz);
+    stop_freq_khz = MIN(info.frequency_max, stop_freq_khz);
 
     printf(_("\n\n%sScanning frequency band"),C_INFO);
     print_band(" ",C_RESET "\n",i,&(lnb_p->freqrange[i]));
     printf(_(C_INFO "IF from %d MHz to %d MHz%s\n"),
-          start_freq_hz / MILLION,
-          stop_freq_hz / MILLION,
+          start_freq_khz / THOUSAND,
+          stop_freq_khz / THOUSAND,
           C_RESET);
 
     dvb_fe_store_parm(parms, DTV_POLARIZATION, lnb_p->freqrange[i].pol);
@@ -659,17 +677,18 @@ int main(int argc, char *argv[])
                       ((lnb_p->freqrange[i].high +
                         lnb_p->freqrange[i].low) /
                       2) *
-                          THOUSAND);
+                          THOUSAND); //MHz * 1e3 = kHz
 
     dvb_sat_set_parms(parms);
 
     scan(fe_handle->fd,
-        start_freq_hz,
-        stop_freq_hz,
+        start_freq_khz,
+        stop_freq_khz,
         lnb_p->freqrange[i].int_freq * THOUSAND,
         inv_lo,
         &chans_file,
-        parms);
+        parms,
+        info.symbol_rate_max);
   }
 
   //don't mess around trying to deal with any frequeny overlaps
