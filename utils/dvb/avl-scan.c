@@ -569,22 +569,27 @@ int main(int argc, char *argv[])
       //lnb_p = (struct lnb_priv *)dvb_sat_get_lnb(lnb);
       lnb_p = &lnb_s;
       memcpy((void*)lnb_p, dvb_sat_get_lnb(lnb), sizeof(struct lnb_priv));
-      
+
       for (int i = 0; i < ARRAY_SIZE(lnb_p->freqrange) && lnb_p->freqrange[i].low; i++)
         n_freq_bands++;
 
-      if(args.pol_count == 1) {
-	for (int i = 0; i < n_freq_bands; i++) {
-	  lnb_p->freqrange[i].pol = args.polarizations[0];
-	}
-      } else if((args.pol_count == 2) && (n_freq_bands <= 2)) {
-	for (int i = 0; i < n_freq_bands; i++) {
-	  lnb_p->freqrange[i].pol = args.polarizations[0];
-	  memcpy((void*)(&lnb_p->freqrange[i+n_freq_bands]), (void*)(&lnb_p->freqrange[i]), sizeof(struct freqrange_priv));	  
-	  lnb_p->freqrange[i+n_freq_bands].pol = args.polarizations[1];
-	}
-	n_freq_bands *= 2;
-      }      
+      if (args.pol_count == 1)
+      {
+        for (int i = 0; i < n_freq_bands; i++)
+        {
+          lnb_p->freqrange[i].pol = args.polarizations[0];
+        }
+      }
+      else if ((args.pol_count == 2) && (n_freq_bands <= 2))
+      {
+        for (int i = 0; i < n_freq_bands; i++)
+        {
+          lnb_p->freqrange[i].pol = args.polarizations[0];
+          memcpy((void *)(&lnb_p->freqrange[i + n_freq_bands]), (void *)(&lnb_p->freqrange[i]), sizeof(struct freqrange_priv));
+          lnb_p->freqrange[i + n_freq_bands].pol = args.polarizations[1];
+        }
+        n_freq_bands *= 2;
+      }
       if ((args.freq_band >= 0) && (args.freq_band >= n_freq_bands))
       {
         printf(_(C_BAD "Invalid LNB frequency band %d.\n" C_RESET), args.freq_band);
