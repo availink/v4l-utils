@@ -56,7 +56,7 @@ static const struct argp_option options[] = {
     {"lnbf", 'l', N_("LNBf_type"), 0, N_("type of LNBf to use. 'help' lists the available ones"), 0},
     {"freq_band", 'F', N_("(all, band #)"), 0, N_("Frequency band number (from LNB types list, starting with 0) or 'all'"), 0},
     {"lna", 'w', N_("LNA (on, off, auto)"), 0, N_("enable/disable/auto LNA power"), 0},
-    {"polarizations", 'p', N_("polarizations (AUTO,VH,V,H,LR,L,R)"), 0, N_("Auto/Vertical&Horizontal/Vertical/Horizontal/Left&Right/Left/Right (default VH,Veritical&Horizontal"), 0},
+    {"polarizations", 'p', N_("(AUTO,VH,V,H,LR,L,R)"), 0, N_("Auto/Vertical&Horizontal/Vertical/Horizontal/Left&Right/Left/Right (default VH"), 0},
     {"sat_number", 'S', N_("satellite_number"), 0, N_("satellite number. If not specified, disable DISEqC"), 0},
     {"freq_bpf", 'U', N_("frequency"), 0, N_("SCR/Unicable band-pass filter frequency to use, in kHz"), 0},
     {"wait", 'W', N_("time"), 0, N_("adds additional wait time for DISEqC command completion"), 0},
