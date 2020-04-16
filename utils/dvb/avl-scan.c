@@ -41,7 +41,7 @@ struct cl_arguments
   int verbose;
   char *lnb_name, *output;
   unsigned adapter, n_adapter, adapter_fe, frontend;
-  int lna, lnb, sat_number, freq_bpf, freq_band;
+  int lna, lnb, sat_number, freq_bpf, freq_band, symrate;
   unsigned diseqc_wait, timeout_multiply;
   const char *cc;
   int polarizations[2];
@@ -55,6 +55,7 @@ static const struct argp_option options[] = {
     {"frontend", 'f', N_("frontend#"), 0, N_("use given frontend (default 0)"), 0},
     {"lnbf", 'l', N_("LNBf_type"), 0, N_("type of LNBf to use. 'help' lists the available ones"), 0},
     {"freq_band", 'F', N_("(all, band #)"), 0, N_("Frequency band number (from LNB types list, starting with 0) or 'all'"), 0},
+    {"symrate", 's', N_("(symbol rate)"), 0, N_("Symbol rate to indicate to tuner for purposes of calculating LPF"), 0},
     {"lna", 'w', N_("LNA (on, off, auto)"), 0, N_("enable/disable/auto LNA power"), 0},
     {"polarizations", 'p', N_("(AUTO,VH,V,H,LR,L,R)"), 0, N_("Auto/Vertical&Horizontal/Vertical/Horizontal/Left&Right/Left/Right (default VH"), 0},
     {"sat_number", 'S', N_("satellite_number"), 0, N_("satellite number. If not specified, disable DISEqC"), 0},
@@ -360,6 +361,9 @@ static error_t parse_opt(int k, char *optarg, struct argp_state *state)
     args->frontend = strtoul(optarg, NULL, 0);
     args->adapter_fe = args->adapter;
     break;
+  case 's':
+    args->symrate = strtoul(optarg, NULL, 0);
+    break;
   case 'w':
     if (!strcasecmp(optarg, "on"))
     {
@@ -533,6 +537,7 @@ int main(int argc, char *argv[])
   args.adapter = (unsigned)-1;
   args.lna = LNA_AUTO;
   args.freq_band = -1;
+  args.symrate = 55*MILLION;
   args.pol_count = 2;
   args.polarizations[0] = POLARIZATION_V; 
   args.polarizations[1] = POLARIZATION_H; 
@@ -735,7 +740,7 @@ int main(int argc, char *argv[])
         inv_lo,
         &chans_file,
         parms,
-        info.symbol_rate_max);
+        args.symrate);
   }
 
   //don't mess around trying to deal with any frequeny overlaps
