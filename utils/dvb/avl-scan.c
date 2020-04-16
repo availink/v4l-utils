@@ -44,7 +44,8 @@ struct cl_arguments
   int lna, lnb, sat_number, freq_bpf, freq_band;
   unsigned diseqc_wait, timeout_multiply;
   const char *cc;
-
+  int polarizations[2];
+  int pol_count;
   /* Used by status print */
   unsigned n_status_lines;
 };
@@ -55,6 +56,7 @@ static const struct argp_option options[] = {
     {"lnbf", 'l', N_("LNBf_type"), 0, N_("type of LNBf to use. 'help' lists the available ones"), 0},
     {"freq_band", 'F', N_("(all, band #)"), 0, N_("Frequency band number (from LNB types list, starting with 0) or 'all'"), 0},
     {"lna", 'w', N_("LNA (on, off, auto)"), 0, N_("enable/disable/auto LNA power"), 0},
+    {"polarizations", 'p', N_("polarizations (AUTO,VH,V,H,LR,L,R)"), 0, N_("Auto/Vertical&Horizontal/Vertical/Horizontal/Left&Right/Left/Right (default VH,Veritical&Horizontal"), 0},
     {"sat_number", 'S', N_("satellite_number"), 0, N_("satellite number. If not specified, disable DISEqC"), 0},
     {"freq_bpf", 'U', N_("frequency"), 0, N_("SCR/Unicable band-pass filter frequency to use, in kHz"), 0},
     {"wait", 'W', N_("time"), 0, N_("adds additional wait time for DISEqC command completion"), 0},
@@ -401,6 +403,31 @@ static error_t parse_opt(int k, char *optarg, struct argp_state *state)
   case 'W':
     args->diseqc_wait = strtoul(optarg, NULL, 0);
     break;
+  case 'p':
+    if(!strncmp("auto",optarg,4) || !strncmp("AUTO",optarg,4)) {
+      args->pol_count = 0;
+    } else if(!strncmp("VH",optarg,2) || !strncmp("vh",optarg,2)) {
+      args->pol_count = 2;
+      args->polarizations[0] = POLARIZATION_V; 
+      args->polarizations[1] = POLARIZATION_H; 
+    } else if(!strncmp("LR",optarg,2) || !strncmp("lr",optarg,2)) {
+      args->pol_count = 2;
+      args->polarizations[0] = POLARIZATION_L; 
+      args->polarizations[1] = POLARIZATION_R; 
+    } else if(!strncmp("V",optarg,1) || !strncmp("v",optarg,1)) {
+      args->pol_count = 1;
+      args->polarizations[0] = POLARIZATION_V; 
+    } else if(!strncmp("H",optarg,1) || !strncmp("h",optarg,1)) {
+      args->pol_count = 1;
+      args->polarizations[0] = POLARIZATION_H; 
+    } else if(!strncmp("L",optarg,1) || !strncmp("l",optarg,1)) {
+      args->pol_count = 1;
+      args->polarizations[0] = POLARIZATION_L; 
+    } else if(!strncmp("R",optarg,1) || !strncmp("r",optarg,1)) {
+      args->pol_count = 1;
+      args->polarizations[0] = POLARIZATION_R; 
+    }
+    break;
   case 'v':
     args->verbose++;
     break;
@@ -485,6 +512,8 @@ int main(int argc, char *argv[])
       .args_doc = N_(""),
   };
   struct lnb_priv *lnb_p;
+  struct lnb_priv lnb_s;
+
   int n_freq_bands = 0;
   struct dvb_file chans_file;
 
@@ -504,6 +533,9 @@ int main(int argc, char *argv[])
   args.adapter = (unsigned)-1;
   args.lna = LNA_AUTO;
   args.freq_band = -1;
+  args.pol_count = 2;
+  args.polarizations[0] = POLARIZATION_V; 
+  args.polarizations[1] = POLARIZATION_H; 
 
   if (argp_parse(&argp, argc, argv, ARGP_NO_HELP | ARGP_NO_EXIT, &idx, &args))
   {
@@ -529,11 +561,26 @@ int main(int argc, char *argv[])
       exit(1);
     }
     else
-    {
-      lnb_p = (struct lnb_priv *)dvb_sat_get_lnb(lnb);
+    {      
+      //lnb_p = (struct lnb_priv *)dvb_sat_get_lnb(lnb);
+      lnb_p = &lnb_s;
+      memcpy((void*)lnb_p, dvb_sat_get_lnb(lnb), sizeof(struct lnb_priv));
       
       for (int i = 0; i < ARRAY_SIZE(lnb_p->freqrange) && lnb_p->freqrange[i].low; i++)
         n_freq_bands++;
+
+      if(args.pol_count == 1) {
+	for (int i = 0; i < n_freq_bands; i++) {
+	  lnb_p->freqrange[i].pol = args.polarizations[0];
+	}
+      } else if((args.pol_count == 2) && (n_freq_bands <= 2)) {
+	for (int i = 0; i < n_freq_bands; i++) {
+	  lnb_p->freqrange[i].pol = args.polarizations[0];
+	  memcpy((void*)(&lnb_p->freqrange[i+n_freq_bands]), (void*)(&lnb_p->freqrange[i]), sizeof(struct freqrange_priv));	  
+	  lnb_p->freqrange[i+n_freq_bands].pol = args.polarizations[1];
+	}
+	n_freq_bands *= 2;
+      }      
       if ((args.freq_band >= 0) && (args.freq_band >= n_freq_bands))
       {
         printf(_(C_BAD "Invalid LNB frequency band %d.\n" C_RESET), args.freq_band);
