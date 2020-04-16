@@ -238,17 +238,18 @@ int scan(int frontend_fd,
         sleep(1);
     }
 
-    struct dtv_property p[] = {
+    struct dtv_property properties[] = {
         {.cmd = AVL62X1_BS_CTRL_CMD},
         {.cmd = DTV_FREQUENCY}, //in kHz
         {.cmd = DTV_SYMBOL_RATE}, //in Hz
         {.cmd = DTV_DELIVERY_SYSTEM},
         {.cmd = DTV_PILOT},
+        {.cmd = DTV_MODULATION},
         {.cmd = DTV_STREAM_ID}};
 
     struct dtv_properties p_status = {
-        .num = ARRAY_SIZE(p),
-        .props = p};
+        .num = ARRAY_SIZE(properties),
+        .props = properties};
 
     if ((xioctl(frontend_fd, FE_GET_PROPERTY, &p_status)) == -1)
     {
@@ -256,11 +257,11 @@ int scan(int frontend_fd,
       return -1;
     }
 
-    unsigned int stream_id = p[p_status.num - 1].u.data;
+    unsigned int stream_id = properties[p_status.num - 1].u.data;
 
     printf("\n\n%sFtune %.3f MHz%s\n", C_INFO, cur_rf_khz/1e3f, C_RESET);
     
-    if (p[0].u.data & AVL62X1_BS_CTRL_VALID_STREAM_MASK)
+    if (properties[0].u.data & AVL62X1_BS_CTRL_VALID_STREAM_MASK)
     {
       if (cur_entry == NULL)
       {
@@ -288,17 +289,15 @@ int scan(int frontend_fd,
 
       //frequency in khz; add LO
       printf(C_NOTE);
-      //printf("IF %.6f MHz\n", p[1].u.data/1e6f);
-      //p[1].u.data /= 1000;
-      printf("IF %.6f MHz\n", p[1].u.data/1e3f);
+      printf("IF %.6f MHz\n", properties[1].u.data/1e3f);
       if(inv_lo) {
-        p[1].u.data = lo_khz - p[1].u.data;
+        properties[1].u.data = lo_khz - properties[1].u.data;
       } else {
-        p[1].u.data += lo_khz;
+        properties[1].u.data += lo_khz;
       }
 
       memcpy(cur_entry->props,
-             &(p[1]),
+             &(properties[1]),
              (p_status.num - 1) * sizeof(struct dtv_property));
       cur_entry->n_props = p_status.num - 1;
 
@@ -306,22 +305,22 @@ int scan(int frontend_fd,
       dvb_fe_retrieve_parm(parms, DTV_POLARIZATION, &pol);
       dvb_store_entry_prop(cur_entry, DTV_POLARIZATION, pol);
 
-      printf("Freq %.6f MHz\n", p[1].u.data/1e3f);
-      printf("Symrate %.3f Msps\n", p[2].u.data/1e6f);
+      printf("Freq %.6f MHz\n", properties[1].u.data/1e3f);
+      printf("Symrate %.3f Msps\n", properties[2].u.data/1e6f);
       printf("ISI %d\n", stream_id & 0xFF);
       if ((stream_id >> AVL62X1_BS_IS_T2MI_SHIFT) & 1)
       {
         printf("T2MI PID 0x%.4x\n", (stream_id >> AVL62X1_BS_T2MI_PID_SHIFT) & 0x1FFF);
         printf("T2MI PLP ID %d\n", (stream_id >> AVL62X1_BS_T2MI_PLP_ID_SHIFT) & 0xFF);
       }
-      printf("STD %s\n", (p[3].u.data == SYS_DVBS2) ? "S2" : "S");
+      printf("STD %s\n", (properties[3].u.data == SYS_DVBS2) ? "S2" : "S");
     }
     else
     {
       printf(C_OKAY "No streams\n" C_RESET);
     }
     // for(int i=0; i<p_status.num; i++) {
-    //   printf("%d => %d\n",p[i].cmd,p[i].u.data);
+    //   printf("%d => %d\n",properties[i].cmd,properties[i].u.data);
     // }
 
     printf(C_RESET);
